@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: 42 22% 96%;        /* warm, quiet paper background */
+  --ink: 222 18% 12%;         /* primary text */
+  --surface: 40 25% 99%;      /* card surfaces */
+  --surface-muted: 40 18% 93%;
+  --border: 40 12% 85%;
+  --muted: 222 8% 45%;
+
+  --day: 34 62% 42%;          /* ochre/amber — money, time, tasks, waking hours */
+  --day-foreground: 40 40% 98%;
+  --night: 234 45% 55%;       /* indigo — sleep, rest */
+  --night-foreground: 40 40% 98%;
+
+  --success: 142 32% 36%;
+  --warning: 30 70% 45%;
+  --error: 3 55% 48%;
+}
+
+.dark {
+  --paper: 224 20% 9%;
+  --ink: 40 20% 94%;
+  --surface: 224 18% 13%;
+  --surface-muted: 224 16% 17%;
+  --border: 224 14% 22%;
+  --muted: 220 8% 62%;
+
+  --day: 34 68% 58%;
+  --day-foreground: 224 20% 9%;
+  --night: 234 60% 72%;
+  --night-foreground: 224 20% 9%;
+
+  --success: 142 40% 52%;
+  --warning: 30 75% 58%;
+  --error: 3 62% 62%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--paper));
+  color: hsl(var(--ink));
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Respect reduced-motion preferences everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible keyboard focus ring, never suppressed. */
+:focus-visible {
+  outline: 2px solid hsl(var(--day));
+  outline-offset: 2px;
+}

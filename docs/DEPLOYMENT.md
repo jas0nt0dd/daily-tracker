@@ -15,7 +15,7 @@ migrations against real data.
 1. Push this repo to GitHub.
 2. In Render: **New → Web Service**, point at the repo, set:
    - Root directory: `backend`
-   - Build command: `npm install && npm run build`
+   - Build command: `npm ci --include=dev && npm run build`
    - Start command: `npm start`
 3. Environment variables (Render → Environment): set all of
    `backend/.env.example`'s keys with production values. Use your

@@ -9,7 +9,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
-        <main className="container flex-1 py-6 pb-24 md:pb-6">{children}</main>
+        <main className="container flex-1 py-6 pb-28 md:pb-6">{children}</main>
       </div>
       <BottomNav />
       <QuickAdd />

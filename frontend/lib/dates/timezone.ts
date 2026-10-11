@@ -1,5 +1,5 @@
-import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
-import { format } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { format, parseISO } from 'date-fns';
 
 export const DEFAULT_TIMEZONE = 'Asia/Kolkata';
 
@@ -14,8 +14,8 @@ export function todayInTimezone(timezone = DEFAULT_TIMEZONE): string {
 }
 
 export function localDateLabel(dateIso: string, timezone = DEFAULT_TIMEZONE): string {
-  const zoned = toZonedTime(`${dateIso}T00:00:00`, timezone);
-  return format(zoned, 'EEEE, MMMM d');
+  void timezone;
+  return format(parseISO(dateIso), 'EEEE, MMMM d');
 }
 
 export function localTimeLabel(instant: string | Date, timezone = DEFAULT_TIMEZONE): string {

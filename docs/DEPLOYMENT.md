@@ -49,6 +49,9 @@ reset links will point at the wrong place.
 - [ ] `curl https://YOUR-BACKEND/health` returns `{"status":"ok"}`
 - [ ] Sign up with a real email on the deployed frontend and confirm the
       profile + default categories appear (check Supabase Table Editor)
+- [ ] Sign in to the same account from another browser/device and confirm its
+   data is shared; link any existing anonymous account from its original
+   device before moving to credential sign-in
 - [ ] Log one entry in every module (expense, time, sleep, task, workout,
       side quest, habit, wellbeing) and confirm it round-trips
 - [ ] Trigger the cron endpoint manually once and check

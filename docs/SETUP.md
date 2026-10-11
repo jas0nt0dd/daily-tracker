@@ -18,7 +18,7 @@ order. Two ways to do this:
 
 Open the SQL Editor in the Supabase dashboard and paste in each file's
 contents in numeric order (`001_extensions.sql` through
-`015_views_and_functions.sql`), running each one before moving to the next.
+`016_sleep_night_attribution.sql`), running each one before moving to the next.
 
 ### Option B: Supabase CLI
 
@@ -78,6 +78,10 @@ npm run dev
 ```
 
 Open http://localhost:3000, sign up, and you should land on the dashboard.
+Use the same email and password on every device to access the same account.
+For data created before credential login was added, open the app on the device
+that currently has that data and create an account there first; this links the
+existing anonymous account instead of starting with a separate dataset.
 
 ## 6. Verifying RLS actually works
 

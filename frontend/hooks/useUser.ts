@@ -10,22 +10,14 @@ export function useUser() {
 
   useEffect(() => {
     const supabase = createClient();
-
-    async function loadAnonymousUser() {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUser(data.user);
-      } else {
-        const { data: anonymousData } = await supabase.auth.signInAnonymously();
-        setUser(anonymousData.user);
-      }
-      setLoading(false);
-    }
-
-    loadAnonymousUser();
-
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setLoading(false);
     });
 
     return () => subscription.subscription.unsubscribe();

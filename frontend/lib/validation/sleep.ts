@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 export const sleepEntrySchema = z
   .object({
-    sleep_start: z.string().min(1, 'Enter when you fell asleep'),
-    sleep_end: z.string().min(1, 'Enter when you woke up'),
+    sleep_start: z.string().datetime({ offset: true, message: 'Enter a valid sleep start time' }),
+    sleep_end: z.string().datetime({ offset: true, message: 'Enter a valid wake time' }),
     quality: z.coerce.number().min(1).max(5).optional(),
     notes: z.string().max(1000).optional().nullable(),
   })

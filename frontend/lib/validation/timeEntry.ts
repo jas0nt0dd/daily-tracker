@@ -9,7 +9,7 @@ export const timeEntrySchema = z
     category_id: z.string().uuid().nullable().optional(),
     entry_date: z.string().min(1, 'Pick a date'),
     mode: z.enum(['duration', 'range']),
-    duration_minutes: z.coerce.number().positive('Duration must be greater than zero').optional(),
+    duration_minutes: z.coerce.number().finite().int().positive('Duration must be a positive whole number of minutes').optional(),
     start_at: z.string().optional(),
     end_at: z.string().optional(),
     notes: z.string().max(1000).optional().nullable(),
@@ -21,6 +21,17 @@ export const timeEntrySchema = z
     if (data.mode === 'range') {
       if (!data.start_at || !data.end_at) {
         ctx.addIssue({ code: 'custom', path: ['end_at'], message: 'Enter both a start and end time' });
+      } else {
+        const start = new Date(data.start_at).getTime();
+        const end = new Date(data.end_at).getTime();
+        if (!Number.isFinite(start)) {
+          ctx.addIssue({ code: 'custom', path: ['start_at'], message: 'Enter a valid start time' });
+        }
+        if (!Number.isFinite(end)) {
+          ctx.addIssue({ code: 'custom', path: ['end_at'], message: 'Enter a valid end time' });
+        } else if (Number.isFinite(start) && end <= start) {
+          ctx.addIssue({ code: 'custom', path: ['end_at'], message: 'End time must be after start time' });
+        }
       }
     }
   });

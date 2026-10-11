@@ -8,6 +8,9 @@ type AuthMode = 'sign-in' | 'sign-up';
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabaseConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,11 +19,12 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!supabaseConfigured) return;
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user && !data.user.is_anonymous) router.replace('/dashboard');
     });
-  }, [router]);
+  }, [router, supabaseConfigured]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,8 +32,11 @@ export default function LoginPage() {
     setMessage('');
     setSubmitting(true);
 
-    const supabase = createClient();
     try {
+      if (!supabaseConfigured) {
+        throw new Error('Authentication is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then redeploy.');
+      }
+      const supabase = createClient();
       if (mode === 'sign-in') {
         const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError) throw authError;
@@ -58,7 +65,11 @@ export default function LoginPage() {
       router.replace('/dashboard');
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to authenticate. Please try again.');
+      if (cause instanceof TypeError && cause.message.toLowerCase().includes('fetch')) {
+        setError('Could not reach Supabase. Check the project URL and network access, then try again.');
+      } else {
+        setError(cause instanceof Error ? cause.message : 'Unable to authenticate. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -72,6 +83,11 @@ export default function LoginPage() {
         <p className="mt-2 text-sm leading-6 text-muted">
           Sign in with the same account on each device to access your personal data.
         </p>
+        {!supabaseConfigured && (
+          <p className="mt-4 rounded-md border border-error/30 bg-error/5 p-3 text-sm leading-5 text-error" role="alert">
+            Supabase is not configured for this app. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in the frontend environment, then redeploy.
+          </p>
+        )}
 
         <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
           <div>

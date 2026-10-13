@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
-import { localInputToUtcIso } from '@/lib/dates/timezone';
+import { localInputToUtcIso, utcIsoToLocalInput } from '@/lib/dates/timezone';
 import { cn } from '@/lib/utils/cn';
 
 export function SleepEntryForm({ onSuccess }: { onSuccess?: () => void }) {
   const addSleep = useAddSleepEntry();
   const { toast } = useToast();
+  const defaultWakeTime = new Date();
+  const defaultSleepTime = new Date(defaultWakeTime.getTime() - 8 * 60 * 60 * 1000);
 
   const {
     register,
@@ -22,7 +24,13 @@ export function SleepEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<SleepEntryFormValues>({ resolver: zodResolver(sleepEntrySchema) });
+  } = useForm<SleepEntryFormValues>({
+    resolver: zodResolver(sleepEntrySchema),
+    defaultValues: {
+      sleep_start: defaultSleepTime.toISOString(),
+      sleep_end: defaultWakeTime.toISOString(),
+    },
+  });
 
   const quality = watch('quality');
 
@@ -41,13 +49,23 @@ export function SleepEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="sleep_start">Fell asleep</Label>
-          <Input id="sleep_start" type="datetime-local" onChange={(e) => setValue('sleep_start', localInputToUtcIso(e.target.value))} />
+          <Label htmlFor="sleep_start">Fell asleep (date and time)</Label>
+          <Input
+            id="sleep_start"
+            type="datetime-local"
+            defaultValue={utcIsoToLocalInput(defaultSleepTime.toISOString())}
+            onChange={(e) => setValue('sleep_start', e.target.value ? localInputToUtcIso(e.target.value) : '', { shouldValidate: true })}
+          />
           {errors.sleep_start && <p className="text-xs text-error">{errors.sleep_start.message}</p>}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="sleep_end">Woke up</Label>
-          <Input id="sleep_end" type="datetime-local" onChange={(e) => setValue('sleep_end', localInputToUtcIso(e.target.value))} />
+          <Label htmlFor="sleep_end">Woke up (date and time)</Label>
+          <Input
+            id="sleep_end"
+            type="datetime-local"
+            defaultValue={utcIsoToLocalInput(defaultWakeTime.toISOString())}
+            onChange={(e) => setValue('sleep_end', e.target.value ? localInputToUtcIso(e.target.value) : '', { shouldValidate: true })}
+          />
           {errors.sleep_end && <p className="text-xs text-error">{errors.sleep_end.message}</p>}
         </div>
       </div>

@@ -100,17 +100,26 @@ function SideQuestCard({ quest }: { quest: any }) {
   );
 }
 
-export function SideQuestList() {
+export function SideQuestList({ dashboard = false }: { dashboard?: boolean } = {}) {
   const { data: quests, isLoading } = useSideQuests();
 
   if (isLoading) return <div className="h-40 animate-pulse rounded-md bg-surface-muted" />;
-  if (!quests || quests.length === 0) {
-    return <EmptyState icon={Compass} title="No side quests yet" description="Create one to start tracking a personal project." />;
+  const visibleQuests = dashboard
+    ? (quests ?? []).filter((quest) => quest.status === 'active' || quest.status === 'planned').slice(0, 3)
+    : quests ?? [];
+  if (visibleQuests.length === 0) {
+    return (
+      <EmptyState
+        icon={Compass}
+        title={dashboard ? 'No active side quests' : 'No side quests yet'}
+        description="Create one to start tracking a personal project."
+      />
+    );
   }
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {quests.map((q) => (
+      {visibleQuests.map((q) => (
         <SideQuestCard key={q.id} quest={q} />
       ))}
     </div>

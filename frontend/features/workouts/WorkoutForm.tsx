@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import { localInputToUtcIso } from '@/lib/dates/timezone';
+import { localInputToUtcIso, utcIsoToLocalInput } from '@/lib/dates/timezone';
 
 const LABELS: Record<(typeof WORKOUT_TYPES)[number], string> = {
   gym: 'Gym', running: 'Running', walking: 'Walking', cycling: 'Cycling', sports: 'Sports',
@@ -19,6 +19,7 @@ const LABELS: Record<(typeof WORKOUT_TYPES)[number], string> = {
 export function WorkoutForm({ onSuccess }: { onSuccess?: () => void }) {
   const addWorkout = useAddWorkout();
   const { toast } = useToast();
+  const defaultStartedAt = new Date().toISOString();
 
   const {
     register,
@@ -26,7 +27,10 @@ export function WorkoutForm({ onSuccess }: { onSuccess?: () => void }) {
     setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<WorkoutFormValues>({ resolver: zodResolver(workoutSchema), defaultValues: { workout_type: 'gym' } });
+  } = useForm<WorkoutFormValues>({
+    resolver: zodResolver(workoutSchema),
+    defaultValues: { workout_type: 'gym', started_at: defaultStartedAt },
+  });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -66,8 +70,13 @@ export function WorkoutForm({ onSuccess }: { onSuccess?: () => void }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="started_at">When</Label>
-          <Input id="started_at" type="datetime-local" onChange={(e) => setValue('started_at', localInputToUtcIso(e.target.value))} />
+          <Label htmlFor="started_at">Workout date and time</Label>
+          <Input
+            id="started_at"
+            type="datetime-local"
+            defaultValue={utcIsoToLocalInput(defaultStartedAt)}
+            onChange={(e) => setValue('started_at', e.target.value ? localInputToUtcIso(e.target.value) : '', { shouldValidate: true })}
+          />
           {errors.started_at && <p className="text-xs text-error">{errors.started_at.message}</p>}
         </div>
         <div className="flex flex-col gap-1.5">

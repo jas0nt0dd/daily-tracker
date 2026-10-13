@@ -1,8 +1,10 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Lightbulb } from 'lucide-react';
-import { callBackend } from '@/lib/api/backend';
+import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/useUser';
+import { useProfile } from '@/hooks/useProfile';
+import { addDaysIso, localInputToUtcIso, todayInTimezone } from '@/lib/dates/timezone';
 import { formatCurrency } from '@/lib/utils/currency';
 import { formatMinutes } from '@/lib/utils/time';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -19,15 +21,105 @@ interface WeeklyInsights {
 
 function useWeeklyInsights() {
   const { user } = useUser();
+  const { profile } = useProfile();
+  const supabase = createClient();
+  const timezone = profile?.timezone;
+  const today = todayInTimezone(timezone);
+  const weekStartDay = profile?.week_start_day ?? 1;
+  const dayOfWeek = new Date(`${today}T00:00:00Z`).getUTCDay();
+  const weekStart = addDaysIso(today, -((dayOfWeek - weekStartDay + 7) % 7));
+  const previousWeekStart = addDaysIso(weekStart, -7);
+  const nextWeekStart = addDaysIso(weekStart, 7);
+  const weekStartInstant = localInputToUtcIso(`${weekStart}T00:00`, timezone);
+  const previousWeekStartInstant = localInputToUtcIso(`${previousWeekStart}T00:00`, timezone);
+  const nextWeekStartInstant = localInputToUtcIso(`${nextWeekStart}T00:00`, timezone);
+
   return useQuery({
-    queryKey: ['weekly_insights', user?.id],
-    queryFn: () => callBackend<WeeklyInsights>('/api/insights/weekly'),
+    queryKey: ['weekly_insights', user?.id, weekStart],
+    queryFn: async (): Promise<WeeklyInsights> => {
+      const [expensesThis, expensesLast, timeThis, tasksThis, sleepThis] = await Promise.all([
+        supabase
+          .from('expenses')
+          .select('amount, expense_date')
+          .eq('user_id', user!.id)
+          .gte('expense_date', weekStart)
+          .lt('expense_date', nextWeekStart)
+          .is('deleted_at', null),
+        supabase
+          .from('expenses')
+          .select('amount, expense_date')
+          .eq('user_id', user!.id)
+          .gte('expense_date', previousWeekStart)
+          .lt('expense_date', weekStart)
+          .is('deleted_at', null),
+        supabase
+          .from('time_entries')
+          .select('duration_minutes, time_categories(name)')
+          .eq('user_id', user!.id)
+          .gte('entry_date', weekStart)
+          .lt('entry_date', nextWeekStart)
+          .is('deleted_at', null),
+        supabase
+          .from('tasks')
+          .select('status')
+          .eq('user_id', user!.id)
+          .gte('created_at', weekStartInstant)
+          .lt('created_at', nextWeekStartInstant),
+        supabase
+          .from('sleep_entries')
+          .select('duration_minutes')
+          .eq('user_id', user!.id)
+          .gte('sleep_start', weekStartInstant)
+          .lt('sleep_start', nextWeekStartInstant)
+          .is('deleted_at', null),
+      ]);
+
+      const queryError = expensesThis.error ?? expensesLast.error ?? timeThis.error ?? tasksThis.error ?? sleepThis.error;
+      if (queryError) throw queryError;
+
+      const thisWeekTotal = (expensesThis.data ?? []).reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const lastWeekTotal = (expensesLast.data ?? []).reduce((sum, expense) => sum + Number(expense.amount), 0);
+      const time: Record<string, number> = {};
+      for (const row of timeThis.data ?? []) {
+        const categoryName = (row as unknown as { time_categories?: { name: string } | null }).time_categories?.name ?? 'Uncategorized';
+        time[categoryName] = (time[categoryName] ?? 0) + Number(row.duration_minutes);
+      }
+
+      const tasks = { completed: 0, postponed: 0, removed: 0 };
+      for (const task of tasksThis.data ?? []) {
+        if (task.status === 'completed') tasks.completed += 1;
+        if (task.status === 'postponed') tasks.postponed += 1;
+        if (task.status === 'removed') tasks.removed += 1;
+      }
+
+      const sleepDurations = (sleepThis.data ?? []).map((entry) => Number(entry.duration_minutes));
+      const avgMinutes = sleepDurations.length
+        ? sleepDurations.reduce((total, duration) => total + duration, 0) / sleepDurations.length
+        : null;
+      const comparisons: string[] = [];
+      const daysWithExpenses = new Set((expensesLast.data ?? []).map((expense) => expense.expense_date)).size;
+      if (daysWithExpenses >= 4 && lastWeekTotal > 0) {
+        const percentChange = Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100);
+        if (Math.abs(percentChange) >= 5) {
+          comparisons.push(`Spending is ${percentChange > 0 ? 'up' : 'down'} ${Math.abs(percentChange)}% compared to last week.`);
+        }
+      }
+
+      return {
+        weekStart,
+        money: { total: thisWeekTotal },
+        time,
+        tasks,
+        sleep: { avgMinutes },
+        comparisons,
+      };
+    },
     enabled: !!user,
   });
 }
 
 export function WeeklyInsightsPanel() {
-  const { data, isLoading, error } = useWeeklyInsights();
+  const { data, isLoading, error, refetch, isFetching } = useWeeklyInsights();
 
   if (isLoading) return <div className="h-48 animate-pulse rounded-md bg-surface-muted" />;
 
@@ -36,7 +128,9 @@ export function WeeklyInsightsPanel() {
       <EmptyState
         icon={TrendingUp}
         title="Insights unavailable"
-        description="Couldn't reach the backend service. Check that it's running and NEXT_PUBLIC_API_URL is set correctly."
+        description={error instanceof Error ? error.message : 'The Insights request failed. Check the backend service and try again.'}
+        actionLabel={isFetching ? 'Retrying...' : 'Try again'}
+        onAction={() => refetch()}
       />
     );
   }

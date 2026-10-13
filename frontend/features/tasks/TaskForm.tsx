@@ -60,6 +60,13 @@ export function TaskForm({ plannedFor, onSuccess }: { plannedFor?: string; onSuc
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
+          <Label htmlFor="planned_for">Planned date</Label>
+          <Input id="planned_for" type="date" {...register('planned_for')} />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="due_at">Due (optional)</Label>
           <Input id="due_at" type="datetime-local" {...register('due_at')} />
         </div>
